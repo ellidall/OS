@@ -5,6 +5,7 @@
 #include <csignal>
 #include <atomic>
 #include <filesystem>
+#include <functional>
 
 std::atomic_flag exitRequested;
 
@@ -17,6 +18,34 @@ void SignalHandler(int signal)
     }
 }
 
+class FileWriter
+{
+    std::ofstream outfile;
+    std::string filename;
+public:
+    FileWriter(std::string const& name) : outfile(name), filename(name)
+    {
+        if (!outfile.is_open())
+        {
+            throw std::ios_base::failure("Failed to create file");
+        }
+    }
+
+    void addData(std::function<void(std::ofstream & out)> && job)
+    {
+        job(outfile);
+    }
+
+    ~FileWriter()
+    {
+        outfile.close();
+        if (std::filesystem::exists(filename))
+        {
+            std::filesystem::remove(filename);
+        }
+    }
+};
+
 int main()
 {
     try
@@ -28,32 +57,23 @@ int main()
             return EXIT_SUCCESS;
         }
 
-        std::string filename = "temp.txt";
-        std::ofstream outfile(filename);
-        if (!outfile.is_open())
-        {
-            throw std::ios_base::failure("Failed to create file");
-        }
+        FileWriter writer("temp.txt");
 
         for (int i = 0; i <= 100 && !exitRequested.test(); ++i)
         {
-            outfile << i << std::endl;
+            writer.addData([=](auto & out) {
+                out << i << std::endl;
+            });
             std::cout << i << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-
-        outfile.close();
-        if (std::filesystem::exists(filename))
-        {
-            std::filesystem::remove(filename);
-        }
-        std::cout << "Done" << std::endl;
     }
     catch (const std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
     }
 
+    std::cout << "Done" << std::endl;
     return EXIT_SUCCESS;
 }
