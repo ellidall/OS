@@ -1,17 +1,17 @@
 #pragma once
 
-#include <cassert>
-#include <memory>
+#include <mutex>
 #include <cstddef>
-#include <vector>
-#include <ranges>
+#include <memory>
+#include <algorithm>
 
 class MemoryManager
 {
 public:
     MemoryManager(void* start, size_t size) noexcept
-            : m_current(static_cast<char*>(start)), m_freeMemory(size)
-    {}
+    {
+        m_head = std::make_unique<Block>(static_cast<char*>(start), size, true);
+    }
 
     MemoryManager(const MemoryManager&) = delete;
     MemoryManager& operator=(const MemoryManager&) = delete;
@@ -19,54 +19,93 @@ public:
     void* Allocate(size_t size, size_t align = alignof(std::max_align_t)) noexcept
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+
         if (size == 0 || align == 0 || (align & (align - 1)) != 0)
         {
             return nullptr;
         }
 
-        void* alignedPtr = std::align(align, size, reinterpret_cast<void*&>(m_current), m_freeMemory);
-        if (!alignedPtr || m_freeMemory < size)
+        Block* current = m_head.get();
+        while (current != nullptr)
         {
-            return nullptr;
-        }
+            if (current->free && current->size >= size)
+            {
+                void* alignedPtr = std::align(align, size, reinterpret_cast<void*&>(current->start), current->size);
+                if (alignedPtr && current->size >= size)
+                {
+                    if (current->size > size)
+                    {
+                        auto newBlock = std::make_unique<Block>(
+                                static_cast<char*>(alignedPtr) + size,
+                                current->size - size,
+                                true
+                        );
+                        newBlock->next = std::move(current->next);
+                        current->next = std::move(newBlock);
+                        current->size = size;
+                    }
 
-        m_current = static_cast<char*>(alignedPtr) + size;
-        m_freeMemory -= size;
-        m_allocations.emplace_back(alignedPtr, size);
-        return alignedPtr;
+                    current->free = false;
+                    return alignedPtr;
+                }
+            }
+            current = current->next.get();
+        }
+        return nullptr;
     }
 
     void Free(void* addr) noexcept
     {
         std::lock_guard<std::mutex> lock(m_mutex);
+
         if (addr == nullptr)
         {
             return;
         }
 
-        auto it = std::ranges::find_if(m_allocations, [&addr](const Allocation& alloc) {
-            return alloc.ptr == addr;
-        });
-        if (it != m_allocations.end())
+        Block* current = m_head.get();
+        Block* prev = nullptr;
+        while (current != nullptr)
         {
-            m_freeMemory += it->size;
-            m_allocations.erase(it);
+            if (current->start == addr)
+            {
+                current->free = true;
+
+                if (prev && prev->free)
+                {
+                    prev->size += current->size;
+                    prev->next = std::move(current->next);
+                    current = prev;
+                }
+
+                Block* next = current->next.get();
+                if (next && next->free)
+                {
+                    current->size += next->size;
+                    current->next = std::move(next->next);
+                }
+                return;
+            }
+
+            prev = current;
+            current = current->next.get();
         }
     }
+    // заменить на двусвязный список
+    // количество памяти должно быть константным
 
 private:
-    struct Allocation
+    struct Block
     {
-        void* ptr;
-        size_t size;
+        void* start;
+        size_t size = 0;
+        bool free = false;
+        std::unique_ptr<Block> next;
 
-        Allocation(void* p, size_t s) : ptr(p), size(s)
+        Block(void* s, size_t sz, bool f) : start(s), size(sz), free(f), next(nullptr)
         {}
     };
 
     std::mutex m_mutex;
-    char* m_current;
-    size_t m_freeMemory;
-    // нужно чтобы данные размещались в самом буфере O(1)
-    std::vector<Allocation> m_allocations;
+    std::unique_ptr<Block> m_head;
 };

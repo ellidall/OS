@@ -57,7 +57,7 @@ TEST_F(MemoryManagerTest, FreeMemory)
 
     auto newPtr = memoryManager->Allocate(sizeof(double));
     ASSERT_NE(newPtr, nullptr);
-    ASSERT_NE(newPtr, ptr);
+    ASSERT_EQ(newPtr, ptr);
 }
 
 TEST_F(MemoryManagerTest, FreeInvalidMemory)
