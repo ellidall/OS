@@ -119,6 +119,7 @@ private:
             m_globalHistogram[i] += localHistogram[i];
         }
     }
+    // мёрж в конце, загрузка в память по частям, RAII для файла и для памяти
 
     void ProcessFile()
     {

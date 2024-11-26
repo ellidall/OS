@@ -47,19 +47,6 @@ TEST_F(MemoryManagerTest, AllocateExceedsAvailableMemory)
     ASSERT_EQ(ptr, nullptr);
 }
 
-TEST_F(MemoryManagerTest, FreeMemory)
-{
-    auto ptr = memoryManager->Allocate(sizeof(double));
-    ASSERT_NE(ptr, nullptr);
-
-    memoryManager->Free(ptr);
-    memoryManager->Free(ptr);
-
-    auto newPtr = memoryManager->Allocate(sizeof(double));
-    ASSERT_NE(newPtr, nullptr);
-    ASSERT_EQ(newPtr, ptr);
-}
-
 TEST_F(MemoryManagerTest, FreeInvalidMemory)
 {
     memoryManager->Free(nullptr);

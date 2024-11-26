@@ -10,7 +10,12 @@ class MemoryManager
 public:
     MemoryManager(void* start, size_t size) noexcept
     {
-        m_head = std::make_unique<Block>(static_cast<char*>(start), size, true);
+        m_head = reinterpret_cast<Block*>(start);
+        m_head->start = static_cast<char*>(start) + sizeof(Block);
+        m_head->size = size - sizeof(Block);
+        m_head->free = true;
+        m_head->prev = nullptr;
+        m_head->next = nullptr;
     }
 
     MemoryManager(const MemoryManager&) = delete;
@@ -25,31 +30,39 @@ public:
             return nullptr;
         }
 
-        Block* current = m_head.get();
+        Block* current = m_head;
         while (current != nullptr)
         {
             if (current->free && current->size >= size)
             {
-                void* alignedPtr = std::align(align, size, reinterpret_cast<void*&>(current->start), current->size);
-                if (alignedPtr && current->size >= size)
+                auto alignedAddr = MemoryManager::CalcAlignedAddress(current, align);
+                size_t alignedSize = size + (alignedAddr - reinterpret_cast<uintptr_t>(current->start));
+
+                if (alignedSize <= current->size)
                 {
-                    if (current->size > size)
+                    if (current->size > alignedSize + sizeof(Block))
                     {
-                        auto newBlock = std::make_unique<Block>(
-                                static_cast<char*>(alignedPtr) + size,
-                                current->size - size,
-                                true
-                        );
-                        newBlock->next = std::move(current->next);
-                        current->next = std::move(newBlock);
-                        current->size = size;
+                        auto newBlock = reinterpret_cast<Block*>(static_cast<char*>(current->start) + alignedSize);
+                        newBlock->start = reinterpret_cast<char*>(newBlock) + sizeof(Block);
+                        newBlock->size = current->size - alignedSize - sizeof(Block);
+                        newBlock->free = true;
+                        newBlock->prev = current;
+                        newBlock->next = current->next;
+
+                        if (current->next)
+                        {
+                            current->next->prev = newBlock;
+                        }
+                        current->next = newBlock;
                     }
 
+                    current->size = alignedSize;
                     current->free = false;
-                    return alignedPtr;
+
+                    return reinterpret_cast<void*>(alignedAddr);
                 }
             }
-            current = current->next.get();
+            current = current->next;
         }
         return nullptr;
     }
@@ -63,49 +76,71 @@ public:
             return;
         }
 
-        Block* current = m_head.get();
-        Block* prev = nullptr;
+        Block* current = m_head;
         while (current != nullptr)
         {
             if (current->start == addr)
             {
+                if (current->free)
+                {
+                    return;
+                }
                 current->free = true;
-
-                if (prev && prev->free)
-                {
-                    prev->size += current->size;
-                    prev->next = std::move(current->next);
-                    current = prev;
-                }
-
-                Block* next = current->next.get();
-                if (next && next->free)
-                {
-                    current->size += next->size;
-                    current->next = std::move(next->next);
-                }
+                MemoryManager::MergeBlocks(current);
                 return;
             }
-
-            prev = current;
-            current = current->next.get();
+            current = current->next;
         }
     }
-    // заменить на двусвязный список
-    // количество памяти должно быть константным
 
 private:
     struct Block
     {
         void* start;
-        size_t size = 0;
-        bool free = false;
-        std::unique_ptr<Block> next;
-
-        Block(void* s, size_t sz, bool f) : start(s), size(sz), free(f), next(nullptr)
-        {}
+        size_t size;
+        bool free;
+        Block* prev;
+        Block* next;
     };
 
     std::mutex m_mutex;
-    std::unique_ptr<Block> m_head;
+    Block* m_head = nullptr;
+
+    uintptr_t CalcAlignedAddress(Block*& current, size_t align = alignof(std::max_align_t))
+    {
+        auto alignedAddr = reinterpret_cast<uintptr_t>(current->start);
+        uintptr_t offset = alignedAddr % align;
+        if (offset != 0)
+        {
+            alignedAddr += (align - offset);
+        }
+        return alignedAddr;
+    }
+
+    void MergeBlocks(Block*& current)
+    {
+        if (current->prev && current->prev->free)
+        {
+            current->prev->size += current->size + sizeof(Block);
+            current->prev->next = current->next;
+
+            if (current->next)
+            {
+                current->next->prev = current->prev;
+            }
+            current = current->prev;
+        }
+
+        if (current->next && current->next->free)
+        {
+            current->size += current->next->size + sizeof(Block);
+            current->next = current->next->next;
+
+            if (current->next)
+            {
+                current->next->prev = current;
+            }
+        }
+    }
 };
+
