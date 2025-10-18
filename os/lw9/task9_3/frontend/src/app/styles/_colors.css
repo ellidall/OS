@@ -1,0 +1,11 @@
+:root {
+  --color-main-color: rgba(74, 95, 193, 1);
+  --color-surface-white: #FFFFFF;
+  --color-surface-rose: rgba(225, 187, 243, 1);
+  --color-surface-yellow: #FAF3CA;
+  --color-surface-gray: #B1B1B1;
+  --color-surface-light-blue: #C8D3EF;
+  --color-text-default: #0D1D28;
+  --color-border-default: #0D1D28;
+  --color-border-grey: #969ea8;
+}

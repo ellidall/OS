@@ -1,0 +1,16 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 60px;
+  gap: 24px;
+}
+
+.spin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+  max-height: calc(100vh - var(--header-height));
+}

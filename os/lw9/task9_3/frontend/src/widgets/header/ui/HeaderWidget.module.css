@@ -1,0 +1,24 @@
+.header {
+  position: relative;
+  user-select: none;
+  background-color: var(--color-main-color);
+  box-shadow: 0 3px 8px rgba(74, 95, 193, 0.6);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  max-width: 1200px;
+  height: var(--header-height);
+  margin: auto;
+  padding: 0 60px;
+  background-color: var(--color-main-color);
+}
+
+.title {
+  font: var(--font-text-xxlarge);
+  font-weight: 700;
+  color: var(--color-text-default);
+}

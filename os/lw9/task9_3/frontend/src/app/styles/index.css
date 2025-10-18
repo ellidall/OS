@@ -1,0 +1,26 @@
+@import "normilize.css";
+@import "vars.css";
+
+body {
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: none;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background: var(--color-main-color);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border: 3px solid transparent;
+  border-radius: 12px;
+  background: var(--color-text-default);
+  background-clip: content-box;
+}

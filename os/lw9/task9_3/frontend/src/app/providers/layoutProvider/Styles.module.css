@@ -1,0 +1,16 @@
+.container {
+  overflow-y: auto;
+  min-height: calc(100vh - var(--header-height));
+  max-height: calc(100vh - var(--header-height));
+  background-color: var(--color-surface-yellow);
+  scrollbar-gutter: stable both-edges;
+}
+
+.content {
+  box-sizing: border-box;
+  max-width: 1200px;
+  min-height: calc(100vh - var(--header-height));
+  margin: auto;
+  background-color: var(--color-surface-rose);
+  box-shadow: 15px 0 30px rgba(225, 187, 243, 0.7), -15px 0 30px rgba(225, 187, 243, 0.6);
+}

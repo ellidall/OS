@@ -1,0 +1,12 @@
+.button {
+  font: var(--font-text-medium);
+  font-weight: 700;
+  box-sizing: border-box;
+  width: fit-content;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--color-text-default);
+  border: solid 3px var(--color-border-default);
+  border-radius: 6px;
+  background: var(--color-main-color);
+}

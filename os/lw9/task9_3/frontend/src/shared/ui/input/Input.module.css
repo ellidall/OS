@@ -1,0 +1,10 @@
+.input, .textarea {
+  font: var(--font-text-medium);
+  font-weight: 700;
+  width: fit-content;
+  min-width: 200px;
+  padding: 6px 10px;
+  color: var(--color-text-default);
+  border: solid 3px var(--color-border-grey);
+  border-radius: 6px;
+}

@@ -1,0 +1,6 @@
+add_subdirectory(dllProject)
+add_subdirectory(soProject)
+add_subdirectory(libProject)
+add_subdirectory(task10_1)
+add_subdirectory(task10_2)
+add_subdirectory(task10_3)
